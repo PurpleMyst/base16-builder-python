@@ -7,8 +7,6 @@ from threading import Lock
 import pystache
 import yaml
 
-OUTPUT_DIR = os.path.realpath("output")
-
 def get_parent_dir(base_dir, level=1):
     for _ in range(level):
         base_dir = os.path.dirname(base_dir)
@@ -17,7 +15,7 @@ def get_parent_dir(base_dir, level=1):
 
 
 def get_template_dirs():
-    groups = glob(os.path.join("templates", "**", "templates", "config.yaml"))
+    groups = glob(os.path.join("junk", "templates", "**", "templates", "config.yaml"))
     return {get_parent_dir(path, 2) for path in groups}
 
 
@@ -54,7 +52,7 @@ def get_templates(base_path):
 
 
 def get_scheme_files():
-    return glob(os.path.join("schemes/**/*.yaml"))
+    return glob(os.path.join("junk/schemes/**/*.yaml"))
 
 
 def compute_slug(scheme_file):
@@ -103,7 +101,7 @@ def build_single(scheme_file, template_group_files):
         name = os.path.basename(group_path.rstrip("/"))
 
         for template in get_templates(group_path).values():
-            output_dir = os.path.join(OUTPUT_DIR,
+            output_dir = os.path.join("output",
                                       name,
                                       template["output"])
 
@@ -123,5 +121,5 @@ def build_concurrently(schemes, templates):
 
 
 def build():
-    os.makedirs(OUTPUT_DIR, exist_ok=True)
+    os.makedirs("output", exist_ok=True)
     build_concurrently(get_scheme_files(), get_template_dirs())
