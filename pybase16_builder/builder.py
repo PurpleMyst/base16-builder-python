@@ -7,6 +7,7 @@ from threading import Lock
 import pystache
 import yaml
 
+
 def get_parent_dir(base_dir, level=1):
     for _ in range(level):
         base_dir = os.path.dirname(base_dir)
@@ -34,6 +35,7 @@ def threadsafe_cache(f):
 
     return inner
 
+
 @threadsafe_cache
 def get_templates(base_path):
     config_path = os.path.join(base_path, "templates", "config.yaml")
@@ -42,8 +44,7 @@ def get_templates(base_path):
         templates = yaml.safe_load(f.read())
 
     for name, template in templates.items():
-        mustache_path = os.path.join(get_parent_dir(config_path),
-                                     f"{name}.mustache")
+        mustache_path = os.path.join(get_parent_dir(config_path), f"{name}.mustache")
 
         with open(mustache_path) as f:
             template["parsed"] = pystache.parse(f.read())
@@ -58,7 +59,7 @@ def get_scheme_files():
 def compute_slug(scheme_file):
     scheme_basename = os.path.basename(scheme_file)
     if scheme_basename.endswith(".yaml"):
-        scheme_basename = scheme_basename[:-len(".yaml")]
+        scheme_basename = scheme_basename[: -len(".yaml")]
     return scheme_basename.lower().replace(" ", "-")
 
 
@@ -72,7 +73,7 @@ def load_scheme(scheme_file):
 
     bases = [f"base{x:02X}" for x in range(0, 16)]
     for base in bases:
-        scheme[f"{base}-hex"]   = scheme.pop(base)
+        scheme[f"{base}-hex"] = scheme.pop(base)
 
         scheme[f"{base}-hex-r"] = scheme[f"{base}-hex"][0:2]
         scheme[f"{base}-hex-g"] = scheme[f"{base}-hex"][2:4]
@@ -101,9 +102,7 @@ def build_single(scheme_file, template_group_files):
         name = os.path.basename(group_path.rstrip("/"))
 
         for template in get_templates(group_path).values():
-            output_dir = os.path.join("output",
-                                      name,
-                                      template["output"])
+            output_dir = os.path.join("output", name, template["output"])
 
             os.makedirs(output_dir, exist_ok=True)
 
@@ -116,8 +115,7 @@ def build_single(scheme_file, template_group_files):
 
 
 def build_concurrently(schemes, templates):
-    Pool().starmap(build_single, ((scheme, templates)
-                                  for scheme in schemes))
+    Pool().starmap(build_single, ((scheme, templates) for scheme in schemes))
 
 
 def build():

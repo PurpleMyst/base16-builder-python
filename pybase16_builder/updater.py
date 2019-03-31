@@ -14,13 +14,14 @@ def yaml_to_job_list(yaml_file, base_dir):
 
 
 def git_clone(git_url, path):
-    if os.path.exists(os.path.join(path, '.git')):
+    if os.path.exists(os.path.join(path, ".git")):
         shutil.rmtree(path)
     os.makedirs(path, exist_ok=True)
 
     print(f"Cloning from {git_url}…")
-    subprocess.run(["git", "clone", "-q", git_url, path],
-                    env={'GIT_TERMINAL_PROMPT': '0'}).check_returncode()
+    subprocess.run(
+        ["git", "clone", "-q", git_url, path], env={"GIT_TERMINAL_PROMPT": "0"}
+    ).check_returncode()
 
 
 def git_clone_job_list(*job_list):
@@ -42,17 +43,18 @@ def update():
         f.write(yaml.safe_dump(sources))
 
     print("Cloning sources…")
+    git_clone_job_list(yaml_to_job_list(sources_file, os.path.join("junk", "sources")))
+
+    print("Cloning templates & schemes…")
     git_clone_job_list(
-        yaml_to_job_list(sources_file,
-                         os.path.join("junk", "sources"))
+        yaml_to_job_list(
+            os.path.join("junk", "sources", "templates", "list.yaml"),
+            os.path.join("junk", "templates"),
+        ),
+        yaml_to_job_list(
+            os.path.join("junk", "sources", "schemes", "list.yaml"),
+            os.path.join("junk", "schemes"),
+        ),
     )
 
-    print('Cloning templates & schemes…')
-    git_clone_job_list(
-        yaml_to_job_list(os.path.join("junk", "sources", "templates", "list.yaml"),
-                         os.path.join("junk", "templates")),
-        yaml_to_job_list(os.path.join("junk", "sources", "schemes", "list.yaml"),
-                         os.path.join("junk", "schemes"))
-    )
-
-    print('Completed updating repositories.')
+    print("Completed updating repositories.")
