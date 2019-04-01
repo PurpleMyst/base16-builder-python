@@ -1,60 +1,47 @@
 import os
 import subprocess
-import shutil
 import itertools
 from multiprocessing.dummy import Pool
 
 import yaml
+from termcolor import cprint
+
+TEMPLATES_SOURCE = "https://github.com/chriskempson/base16-templates-source"
 
 
-def yaml_to_job_list(yaml_file, base_dir):
+def parse_sources(yaml_file, base_dir):
     with open(yaml_file) as f:
         data = yaml.safe_load(f)
+
     return [(url, os.path.join(base_dir, name)) for name, url in data.items()]
 
 
-def git_clone(git_url, path):
+def fetch_repo(git_url, path):
     if os.path.exists(os.path.join(path, ".git")):
-        shutil.rmtree(path)
-    os.makedirs(path, exist_ok=True)
+        cprint(f"\tPulling from {git_url}...", "blue")
+        subprocess.run(
+            ["git", "-C", path, "pull", "-q"], env={"GIT_TERMINAL_PROMPT": "0"}
+        ).check_returncode()
+    else:
+        cprint(f"\tCloning from {git_url}...", "blue")
+        subprocess.run(
+            ["git", "clone", "-q", git_url, path], env={"GIT_TERMINAL_PROMPT": "0"}
+        ).check_returncode()
 
-    print(f"Cloning from {git_url}…")
-    subprocess.run(
-        ["git", "clone", "-q", git_url, path], env={"GIT_TERMINAL_PROMPT": "0"}
-    ).check_returncode()
 
-
-def git_clone_job_list(*job_list):
-    Pool().starmap(git_clone, itertools.chain.from_iterable(job_list))
+def fetch_repos(*repos):
+    Pool().starmap(fetch_repo, itertools.chain.from_iterable(repos))
 
 
 def update():
-    os.makedirs("junk", exist_ok=True)
+    cprint("Fetching template sources...", "green")
+    fetch_repo(TEMPLATES_SOURCE, os.path.join("sources"))
 
-    print("Creating sources.yaml…")
-    sources = {
-        "schemes": "https://github.com/chriskempson/base16-schemes-source",
-        "templates": "https://github.com/chriskempson/base16-templates-source",
-    }
-
-    sources_file = os.path.join("junk", "sources.yaml")
-
-    with open(sources_file, "w") as f:
-        f.write(yaml.safe_dump(sources))
-
-    print("Cloning sources…")
-    git_clone_job_list(yaml_to_job_list(sources_file, os.path.join("junk", "sources")))
-
-    print("Cloning templates & schemes…")
-    git_clone_job_list(
-        yaml_to_job_list(
-            os.path.join("junk", "sources", "templates", "list.yaml"),
-            os.path.join("junk", "templates"),
-        ),
-        yaml_to_job_list(
-            os.path.join("junk", "sources", "schemes", "list.yaml"),
-            os.path.join("junk", "schemes"),
-        ),
+    cprint("Fetching templates...", "green")
+    fetch_repos(
+        parse_sources(
+            os.path.join("sources", "list.yaml"), os.path.join("sources", "templates")
+        )
     )
 
-    print("Completed updating repositories.")
+    cprint("Completed fetching templates.", "green")
