@@ -1,4 +1,4 @@
-from termcolor import cprint
+import sys
 
 from . import updater, builder, colorparser
 
@@ -8,7 +8,7 @@ def main():
 
     print()
 
-    scheme = colorparser.generate_colorscheme("img.jpg")
+    scheme = colorparser.generate_colorscheme(sys.argv[1])
 
     print()
 
