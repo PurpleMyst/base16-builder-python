@@ -11,9 +11,10 @@ Run the script this way:
     python3 -m educe IMAGE
 
 This will:
-    1. Download all Base16 templates to `sources/templates/`
-    2. Extract the 16 main colors from the image passed as argument.
-    3. Build all Base16 templates with the image palette in `output/`.
+
+1. Download all Base16 templates to `sources/templates/`
+2. Extract the 16 main colors from the image passed as argument.
+3. Build all Base16 templates with the image palette in `output/`.
 
 Thanks
 ------
