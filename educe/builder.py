@@ -3,7 +3,6 @@ from glob import glob
 
 import pystache
 import yaml
-from termcolor import cprint
 
 
 def _get_parent_dir(base_dir, level=1):
@@ -69,11 +68,6 @@ def build(scheme):
 
     os.makedirs("output", exist_ok=True)
 
-    scheme_name = scheme["scheme-name"]
-    scheme_slug = scheme["scheme-slug"]
-
-    cprint(f"Building colorschemes for scheme {scheme_name!r} ...", "green")
-
     for group_path in _get_template_dirs():
         name = os.path.basename(group_path.rstrip("/"))
 
@@ -82,9 +76,7 @@ def build(scheme):
 
             os.makedirs(output_dir, exist_ok=True)
 
-            filepath = f"base16-{scheme_slug}{template.get('extension', '')}"
+            filepath = f"base16-{scheme['scheme-slug']}{template.get('extension', '')}"
             filepath = os.path.join(output_dir, filepath)
             with open(filepath, "w") as f:
                 f.write(pystache.render(template["parsed"], scheme))
-
-    cprint(f"Built colorschemes for scheme {scheme_name!r}", "green")

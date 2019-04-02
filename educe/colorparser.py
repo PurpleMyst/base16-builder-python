@@ -8,10 +8,49 @@ import random
 from collections import namedtuple
 
 from PIL import Image
-from termcolor import cprint
 
 Point = namedtuple("Point", ("coords", "ct"))
 Cluster = namedtuple("Cluster", ("points", "center"))
+
+# If we're using these colors with base16, then there's a sort of "code" for each
+# base. It's easy to figure this out by running `colortest`, but it's hard for
+# randomly generated clusters of colors to fall into this pattern. So we
+# generate colors as normal, then for each base that has an "ideal" color we
+# try to find the one that's closest.
+IDEAL_COLORS = {
+    # base00 Black
+    "base00": (0x00, 0x00, 0x00),
+    # base01
+    # base02
+    # base03 Bright_Black
+    "base03": (0xE1, 0xE1, 0xE1),
+    # base04
+    # base05 White
+    "base05": (0xC0, 0xC0, 0xC0),
+    # base06
+    # base07 Bright_White
+    "base07": (0xFF, 0xFF, 0xFF),
+    # base08 Bright_Red
+    # base08 Red
+    "base08": (0xFF, 0x00, 0x00),
+    # base09
+    # base0A Bright_Yellow
+    # base0A Yellow
+    "base0A": (0xFF, 0xFF, 0x00),
+    # base0B Bright_Green
+    # base0B Green
+    "base0B": (0x00, 0xFF, 0x00),
+    # base0C Bright_Cyan
+    # base0C Cyan
+    "base0C": (0x00, 0xFF, 0xFF),
+    # base0D Blue
+    # base0D Bright_Blue
+    "base0D": (0x00, 0x00, 0xFF),
+    # base0E Bright_Magenta
+    # base0E Magenta
+    "base0E": (0xFF, 0x00, 0x00),
+    # base0F
+}
 
 
 def rgb_to_hex(rgb):
@@ -20,6 +59,10 @@ def rgb_to_hex(rgb):
 
 def euclidean_dist(p1, p2):
     return math.sqrt(sum((c1 - c2) ** 2 for c1, c2 in zip(p1.coords, p2.coords)))
+
+
+def color_dist(c1, c2):
+    return math.sqrt(sum((c1 - c2) ** 2 for c1, c2 in zip(c1, c2)))
 
 
 def _calculate_center(points):
@@ -58,8 +101,6 @@ def kmeans(points, k, min_diff):
 
         clusters = new_clusters
 
-        cprint(f"\tDifference: {diff:.2f}/{min_diff:.2f}", "yellow")
-
         if diff <= min_diff:
             break
 
@@ -73,11 +114,10 @@ def normalize(rgb, minv=128, maxv=256):
 
     rgb = map(lambda x: int(x * 256), colorsys.hsv_to_rgb(h, s, v))
 
-    return rgb_to_hex(rgb)
+    return tuple(rgb)
 
 
 def generate_colorscheme(wallpaper_file):
-    cprint(f"Generating colorscheme from {wallpaper_file} ...", "green")
     img = Image.open(wallpaper_file)
     img.thumbnail((256, 256))
     w, h = img.size
@@ -85,7 +125,8 @@ def generate_colorscheme(wallpaper_file):
     clusters = kmeans(points, 16, 1)
     colors = (map(int, c.center.coords) for c in clusters)
 
-    colorscheme = {"scheme": "wallpaper", "author": "PurpleMyst"}
+    # XXX: Should we remove this normalization step?
+    normalized_colors = []
     for i, color in enumerate(itertools.cycle(colors)):
         if i == 0:
             color = normalize(color, minv=0, maxv=32)
@@ -97,6 +138,32 @@ def generate_colorscheme(wallpaper_file):
             color = normalize(color, minv=200, maxv=256)
         else:
             break
-        colorscheme[f"base{i:02X}"] = color
 
+        normalized_colors.append(color)
+
+    bases = {f"base{i:02X}": None for i in range(16)}
+
+    for base in bases:
+        if base not in IDEAL_COLORS:
+            continue
+
+        idx, ideal_color = min(
+            enumerate(normalized_colors),
+            key=lambda x: color_dist(IDEAL_COLORS[base], x[1]),
+        )
+
+        del normalized_colors[idx]
+
+        bases[base] = ideal_color
+
+    # We are free to distribute the others however we wish.
+    random.shuffle(normalized_colors)
+    for base in bases:
+        if bases[base] is None:
+            bases[base] = normalized_colors.pop()
+
+    assert not normalized_colors
+
+    colorscheme = {base: rgb_to_hex(color) for base, color in bases.items()}
+    colorscheme.update({"scheme": "wallpaper", "author": "PurpleMyst"})
     return colorscheme
